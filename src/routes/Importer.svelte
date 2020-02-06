@@ -5,6 +5,9 @@
 <main>
   <h1>Importer</h1>
   <a href="/" use:link>Homeへ</a>
+	<form >
+	  <textarea class="uk-textarea"></textarea>
+	</form>
 </main>
 
 <style>
