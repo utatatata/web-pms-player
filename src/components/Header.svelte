@@ -1,6 +1,5 @@
 <script>
   import { link } from "svelte-spa-router";
-  export let subtitle;
   export let route;
 
   const activate = r => (r === route ? "uk-active" : "");
@@ -9,7 +8,6 @@
 <style>
   h1 a {
     color: #ee395b;
-    /*color: #ff3e00;*/
   }
 </style>
 
@@ -20,7 +18,7 @@
         <a class="uk-link-heading" href="/" use:link>Web PMS Player</a>
       </h1>
     </div>
-    <nav class="uk-navbar-container" uk-navbar>
+    <nav class="uk-navbar-container" uk-navbar uk-sticky>
       <div class="uk-navbar-left">
         <ul class="uk-navbar-nav">
           <li class={activate('/')}>
