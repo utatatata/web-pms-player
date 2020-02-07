@@ -1,4 +1,3 @@
 # Web PMS Player
 
-A simple web-based PMS player.
-
+A simple & lightweight web-based PMS player.

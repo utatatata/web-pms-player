@@ -1,6 +1,6 @@
 {
   "name": "web-pms-player",
-  "description": "A simple web based PMS player.",
+  "description": "A simple & lightweight web-based PMS player.",
   "version": "1.0.0",
   "scripts": {
     "build": "rollup -c",
