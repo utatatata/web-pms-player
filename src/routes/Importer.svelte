@@ -13,6 +13,9 @@
   let filepondInput;
   let filepond;
   let pmsFiles = [];
+  let importingPms = null;
+
+  const pd = f => e => e.preventDefault() || f(e);
 
   const notification = (status, msg) => {
     const icon =
@@ -23,8 +26,7 @@
     );
   };
 
-  const startImporting = async e => {
-    e.preventDefault();
+  const startImporting = pd(async e => {
     importing = true;
 
     if (filepond.status === 0) {
@@ -64,40 +66,44 @@
       data: await readBinary(f.file)
     }))(files.filter(f => f.fileExtension !== "pms"));
 
-    console.log(pmses);
-    console.log(others);
-    console.log({
-      player: pmses[0].data.player,
-      genre: pmses[0].data.genre,
-      title: pmses[0].data.title,
-      artist: pmses[0].data.artist,
-      playlevel: pmses[0].data.playlevel,
-      pms: pmses,
-      files: others
-    });
-
     if (pmses.length !== 0) {
-      try {
-        await insertPMS({
-          player: pmses[0].data.player,
-          genre: pmses[0].data.genre,
-          title: pmses[0].data.title,
-          artist: pmses[0].data.artist,
-          playlevel: pmses[0].data.playlevel,
-          pms: pmses,
-          files: others
-        });
-        notification("success", "Succeeded to add PMS");
-        filepond.removeFiles();
-      } catch (_) {
-        notification("danger", "Failed to add PMS");
-      }
+      importingPms = {
+        player: pmses[0].data.player,
+        genre: pmses[0].data.genre,
+        title: pmses[0].data.title,
+        artist: pmses[0].data.artist,
+        playlevel: pmses[0].data.playlevel,
+        pms: pmses,
+        files: others
+      };
+      return;
     } else {
       notification("danger", "Failed to add PMS");
     }
 
     importing = false;
-  };
+  });
+
+  const doImport = pd(async _ => {
+    try {
+      await insertPMS(importingPms);
+      notification("success", "Succeeded to add PMS");
+      filepond.removeFiles();
+      importingPms = null;
+      importing = false;
+    } catch (_) {
+      notification("danger", "Failed to add PMS");
+      importingPms = null;
+      importing = false;
+    }
+  });
+
+  const cancelImport = pd(_ => {
+    filepond.removeFiles();
+    importingPms = null;
+    importing = false;
+    notification("warning", "Cancelled to add PMS");
+  });
 
   onMount(() => {
     filepond = FilePond.create(filepondInput);
@@ -113,22 +119,49 @@
 <main>
   <div class="uk-container">
     <form class="uk-text-center">
-      <div class="uk-flex-inline uk-flex-left uk-flex-middle uk-width-max">
-        <button
-          class="uk-button uk-button-default"
-          on:click={startImporting}
-          disabled={importing}>
-          Import
-        </button>
-        <button
-          class="uk-button uk-button-danger"
-          on:click={e => e.preventDefault() || filepond.removeFiles()}>
-          reset
-        </button>
-        <div
-          class="uk-margin-left{importing ? '' : ' uk-invisible'}"
-          uk-spinner />
-      </div>
+      {#if importingPms === null}
+        <div class="uk-flex-inline uk-flex-left uk-flex-middle uk-width-max">
+          <button
+            class="uk-button uk-button-default"
+            on:click={startImporting}
+            disabled={importing}>
+            Import
+          </button>
+          <button
+            class="uk-button uk-button-danger"
+            on:click={pd(_ => filepond.removeFiles())}>
+            reset
+          </button>
+          <div
+            class="uk-margin-left{importing ? '' : ' uk-invisible'}"
+            uk-spinner />
+        </div>
+      {:else}
+        <div class="uk-card uk-card-default uk-card-body uk-margin-bottom">
+          <h3 class="uk-card-title">Would you import it?</h3>
+          <div class="uk-flex uk-flex-center">
+            <button class="uk-button uk-button-default" on:click={doImport}>
+              Import
+            </button>
+            <button class="uk-button uk-button-danger" on:click={cancelImport}>
+              Cancel
+            </button>
+          </div>
+          <dl class="uk-description-list uk-description-list-divider">
+            <dt>Genre</dt>
+            <dd>{importingPms.genre}</dd>
+            <dd />
+            <dt>Title</dt>
+            <dd>{importingPms.title}</dd>
+            <dd />
+            <dt>Artist</dt>
+            <dd>{importingPms.artist}</dd>
+            <dd />
+            <dt>Level</dt>
+            <dd>{importingPms.playlevel}</dd>
+          </dl>
+        </div>
+      {/if}
       <hr />
       <input
         bind:this={filepondInput}
