@@ -4,11 +4,11 @@
   import FilePond from "filepond";
   import UIkit from "uikit";
   import Header from "../components/Header.svelte";
-  import { parsePMS } from "../parser.js";
-  import { insertPMS } from "../db.js";
-  import { readBinary } from "../file.js";
-  import * as P from "../promise.js";
-  import { pd } from "../eventHandler.js";
+  import * as Parser from "../utils/parser.js";
+  import * as DB from "../utils/db.js";
+  import * as File from "../utils/file.js";
+  import * as P from "../utils/promise.js";
+  import { preventDefault } from "../utils/eventHandler.js";
 
   /* Utilities */
   const notification = (status, msg) => {
@@ -34,7 +34,7 @@
   });
 
   /* Handlers */
-  const startImport = pd(async _ => {
+  const startImport = preventDefault(async _ => {
     importing = true;
 
     if (filepond.status === 0) {
@@ -64,14 +64,14 @@
       name: f.filename,
       base: f.filenameWithoutExtension,
       ext: f.fileExtension,
-      data: parsePMS(await f.file.text())
+      data: Parser.parsePMS(await f.file.text())
     }))(files.filter(f => f.fileExtension === "pms"));
 
     const others = await P.bind(async f => ({
       name: f.filename,
       base: f.filenameWithoutExtension,
       ext: f.fileExtension,
-      data: await readBinary(f.file)
+      data: await File.readBinary(f.file)
     }))(files.filter(f => f.fileExtension !== "pms"));
 
     // difficulty is 'n', 'h', or 'ex' (probably)
@@ -95,9 +95,9 @@
     }
   });
 
-  const doImport = pd(async _ => {
+  const doImport = preventDefault(async _ => {
     try {
-      await insertPMS(importingPms);
+      await DB.insertPMS(importingPms);
       notification("success", "Succeeded to add PMS");
       importing = false;
       importingPms = null;
@@ -110,7 +110,7 @@
     }
   });
 
-  const cancelImport = pd(_ => {
+  const cancelImport = preventDefault(_ => {
     importing = false;
     importingPms = null;
     filepond.removeFiles();
@@ -137,7 +137,7 @@
           </button>
           <button
             class="uk-button uk-button-danger"
-            on:click={pd(_ => filepond.removeFiles())}>
+            on:click={preventDefault(_ => filepond.removeFiles())}>
             reset
           </button>
           <div

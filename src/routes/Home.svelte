@@ -2,20 +2,27 @@
   import { link } from "svelte-spa-router";
   import UIkit from "uikit";
   import Header from "../components/Header.svelte";
-  import { getAllPMS } from "../db.js";
-  import { pd } from "../eventHandler.js";
+  import * as DB from "../utils/db.js";
+  import { preventDefault } from "../utils/eventHandler.js";
 
+  /* Globals */
   let pmsList = [];
   let focusPms = null;
+  let gamepadIndex = 0;
+
   (async () => {
-    pmsList = await getAllPMS();
+    pmsList = (await DB.getAllPMS())
+      // ref: for `bind:this`
+      .map(pms => ({ ...pms, ref: null }));
     focusPms = pmsList[0];
   })();
 
+  /* Helpers */
   const scroll = i =>
     i >= pmsList.length
       ? {}
       : UIkit.scroll(pmsList[i].ref, { offset: 200, duration: 200 }).scrollTo(
+          // Caution! `.ref` is initialized by Svelte (`bind:this`)
           pmsList[i].ref
         );
   const focus = i =>
@@ -26,12 +33,14 @@
     return i == -1 ? NaN : i;
   };
 
+  /* move focus */
   const left = (n = 1) => focus(Math.max(0, focusIndex() - n));
   const right = (n = 1) =>
     focus(Math.min(focusIndex() + n, pmsList.length - 1));
   const up = (n = 1) => left(n * 3);
   const down = (n = 1) => right(n * 3);
 
+  /* Handlers */
   const handleKeyDown = e => {
     if (focusPms === null) {
       return;
@@ -47,8 +56,9 @@
     }
   };
 
-  let gamepadIndex = 0;
+  /* Gamepad */
   {
+    // button numbers of pop'n
     const B1 = 0;
     const B2 = 1;
     const B3 = 7;
@@ -58,62 +68,53 @@
     const B7 = 5;
     const B8 = 12;
     const B9 = 4;
-    const before = {
-      [B1]: { pressed: false, lasttime: 0 },
-      [B2]: { pressed: false, lasttime: 0 },
-      [B3]: { pressed: false, lasttime: 0 },
-      [B4]: { pressed: false, lasttime: 0 },
-      [B5]: { pressed: false, lasttime: 0 },
-      [B6]: { pressed: false, lasttime: 0 },
-      [B7]: { pressed: false, lasttime: 0 },
-      [B8]: { pressed: false, lasttime: 0 },
-      [B9]: { pressed: false, lasttime: 0 }
-    };
-    setInterval(() => {
-      const pad = navigator.getGamepads()[gamepadIndex];
-      if (pad === null) {
-        return;
-      }
-      const move = b => {
-        const m =
-          b === B3
-            ? left
-            : b === B7
-            ? right
-            : b === B4
-            ? up
-            : b === B6
-            ? down
-            : null;
-        if (m === null) {
+
+    const before = [B1, B2, B3, B4, B5, B6, B7, B8, B9].reduce(
+      // lasttime: the last time a button pressed and an action performed
+      (acc, n) => ({ ...acc, [n]: { pressed: false, lasttime: 0 } }),
+      {}
+    );
+
+    setInterval(
+      () => {
+        const pad = navigator.getGamepads()[gamepadIndex];
+        if (pad === null) {
           return;
         }
-        if (!before[b].pressed && pad.buttons[b].pressed) {
-          before[b].lasttime = Date.now();
-          m();
-        } else if (before[b].pressed && pad.buttons[b].pressed) {
-          const now = Date.now();
-          if (now - before[b].lasttime > 250) {
-            before[b].lasttime = Date.now();
-            m();
-          }
-        }
-      };
-      move(B3);
-      move(B7);
-      move(B4);
-      move(B6);
 
-      before[B1].pressed = pad.buttons[B1].pressed;
-      before[B2].pressed = pad.buttons[B2].pressed;
-      before[B3].pressed = pad.buttons[B3].pressed;
-      before[B4].pressed = pad.buttons[B4].pressed;
-      before[B5].pressed = pad.buttons[B5].pressed;
-      before[B6].pressed = pad.buttons[B6].pressed;
-      before[B7].pressed = pad.buttons[B7].pressed;
-      before[B8].pressed = pad.buttons[B8].pressed;
-      before[B9].pressed = pad.buttons[B9].pressed;
-    }, 1000 / 60);
+        const judgeMove = (buttonNumber, move) => {
+          if (
+            !before[buttonNumber].pressed &&
+            pad.buttons[buttonNumber].pressed
+          ) {
+            // on button pushed (from up to down)
+            before[buttonNumber].lasttime = Date.now();
+            move();
+          } else if (
+            before[buttonNumber].pressed &&
+            pad.buttons[buttonNumber].pressed
+          ) {
+            // on button keep pressed
+            const now = Date.now();
+            if (now - before[buttonNumber].lasttime > 250) {
+              before[buttonNumber].lasttime = Date.now();
+              move();
+            }
+          }
+        };
+        judgeMove(B3, left);
+        judgeMove(B7, right);
+        judgeMove(B4, up);
+        judgeMove(B6, down);
+
+        // reset
+        [B1, B2, B3, B4, B5, B6, B7, B8, B9].forEach(n => {
+          before[n].pressed = pad.buttons[n].pressed;
+        });
+      },
+      // 60 fps
+      1000 / 60
+    );
   }
 </script>
 
@@ -139,10 +140,7 @@
           <li
             class={focusPms !== null && pms.id === focusPms.id ? 'focused' : ''}
             bind:this={pms.ref}
-            on:click={pd(_ => {
-              focusPms = pms;
-              scroll(i);
-            })}>
+            on:click={preventDefault(_ => focus(i))}>
             <div class="uk-card uk-card-body">
               <h3 class="uk-card-title">{pms.genre}</h3>
               <div class="uk-flex uk-flex-between">
