@@ -18,6 +18,8 @@
   /* custom mixin overwrites */
 
   @import "uikit/src/scss/uikit-theme.scss";
+
+  @import "filepond/dist/filepond.min.css";
 </style>
 
 <Router {routes} />

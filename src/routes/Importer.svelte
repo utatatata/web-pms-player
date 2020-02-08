@@ -8,15 +8,9 @@
   import { insertPMS } from "../db.js";
   import { readBinary } from "../file.js";
   import * as P from "../promise.js";
+  import { pd } from "../eventHandler.js";
 
-  let importing = false;
-  let filepondInput;
-  let filepond;
-  let pmsFiles = [];
-  let importingPms = null;
-
-  const pd = f => e => e.preventDefault() || f(e);
-
+  /* Utilities */
   const notification = (status, msg) => {
     const icon =
       status === "danger" ? "ban" : status === "warning" ? "warning" : "check";
@@ -26,7 +20,21 @@
     );
   };
 
-  const startImporting = pd(async e => {
+  /* Globals */
+  // for filepont bind
+  let filepondInput;
+  let filepond;
+  let importing = false;
+  let importingPms = null;
+
+  /* Externals */
+  onMount(() => {
+    // init filepond
+    filepond = FilePond.create(filepondInput);
+  });
+
+  /* Handlers */
+  const startImport = pd(async _ => {
     importing = true;
 
     if (filepond.status === 0) {
@@ -66,64 +74,64 @@
       data: await readBinary(f.file)
     }))(files.filter(f => f.fileExtension !== "pms"));
 
+    // difficulty is 'n', 'h', or 'ex' (probably)
+    const difficulty = pms => pms.base.split("-").slice(-1)[0];
+
     if (pmses.length !== 0) {
       importingPms = {
         player: pmses[0].data.player,
         genre: pmses[0].data.genre,
         title: pmses[0].data.title,
         artist: pmses[0].data.artist,
-        playlevel: pmses[0].data.playlevel,
-        pms: pmses,
-        files: others
+        levels: pmses
+          .map(pms => ({ [difficulty(pms)]: pms.data.playlevel }))
+          .reduce((x, y) => ({ ...x, ...y })),
+        files: [...pmses, ...others]
       };
       return;
     } else {
-      notification("danger", "Failed to add PMS");
+      notification("danger", "Found no PMS files");
+      importing = false;
     }
-
-    importing = false;
   });
 
   const doImport = pd(async _ => {
     try {
       await insertPMS(importingPms);
       notification("success", "Succeeded to add PMS");
+      importing = false;
+      importingPms = null;
       filepond.removeFiles();
-      importingPms = null;
-      importing = false;
-    } catch (_) {
+    } catch (e) {
       notification("danger", "Failed to add PMS");
-      importingPms = null;
+      console.error(e);
       importing = false;
+      importingPms = null;
     }
   });
 
   const cancelImport = pd(_ => {
-    filepond.removeFiles();
-    importingPms = null;
     importing = false;
+    importingPms = null;
+    filepond.removeFiles();
     notification("warning", "Cancelled to add PMS");
-  });
-
-  onMount(() => {
-    filepond = FilePond.create(filepondInput);
   });
 </script>
 
-<style global>
-  @import "filepond/dist/filepond.min.css";
+<style>
+
 </style>
 
 <Header route="/importer" />
 
 <main>
   <div class="uk-container">
-    <form class="uk-text-center">
+    <form>
       {#if importingPms === null}
-        <div class="uk-flex-inline uk-flex-left uk-flex-middle uk-width-max">
+        <div class="uk-flex uk-flex-left uk-flex-middle">
           <button
             class="uk-button uk-button-default"
-            on:click={startImporting}
+            on:click={startImport}
             disabled={importing}>
             Import
           </button>
@@ -137,7 +145,9 @@
             uk-spinner />
         </div>
       {:else}
-        <div class="uk-card uk-card-default uk-card-body uk-margin-bottom">
+        <div
+          class="uk-card uk-card-default uk-card-body uk-margin-bottom
+          uk-text-center">
           <h3 class="uk-card-title">Would you import it?</h3>
           <div class="uk-flex uk-flex-center">
             <button class="uk-button uk-button-default" on:click={doImport}>
@@ -158,11 +168,26 @@
             <dd>{importingPms.artist}</dd>
             <dd />
             <dt>Level</dt>
-            <dd>{importingPms.playlevel}</dd>
+            <dd>
+              <div class="uk-flex uk-flex-center">
+                <div>NORMAL</div>
+                <div class="uk-margin-small-left">
+                  {importingPms.levels['n']}
+                </div>
+                <div class="uk-margin-left">HARD</div>
+                <div class="uk-margin-small-left">
+                  {importingPms.levels['h']}
+                </div>
+                <div class="uk-margin-left">EX</div>
+                <div class="uk-margin-small-left">
+                  {importingPms.levels['ex']}
+                </div>
+              </div>
+            </dd>
           </dl>
         </div>
       {/if}
-      <hr />
+      <hr class="uk-margin-large-bottom" />
       <input
         bind:this={filepondInput}
         type="file"
