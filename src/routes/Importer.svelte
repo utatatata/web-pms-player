@@ -7,7 +7,6 @@
   import * as Parser from "../utils/parser.js";
   import * as DB from "../utils/db.js";
   import * as File from "../utils/file.js";
-  import * as P from "../utils/promise.js";
   import { preventDefault } from "../utils/eventHandler.js";
 
   /* Utilities */
@@ -60,19 +59,27 @@
 
     const files = filepond.getFiles();
 
-    const pmses = await P.bind(async f => ({
-      name: f.filename,
-      base: f.filenameWithoutExtension,
-      ext: f.fileExtension,
-      data: Parser.parsePMS(await f.file.text())
-    }))(files.filter(f => f.fileExtension === "pms"));
+    const pmses = await Promise.all(
+      files
+        .filter(f => f.fileExtension === "pms")
+        .map(async f => ({
+          name: f.filename,
+          base: f.filenameWithoutExtension,
+          ext: f.fileExtension,
+          data: Parser.parsePMS(await f.file.text())
+        }))
+    );
 
-    const others = await P.bind(async f => ({
-      name: f.filename,
-      base: f.filenameWithoutExtension,
-      ext: f.fileExtension,
-      data: await File.readBinary(f.file)
-    }))(files.filter(f => f.fileExtension !== "pms"));
+    const others = await Promise.all(
+      files
+        .filter(f => f.fileExtension !== "pms")
+        .map(async f => ({
+          name: f.filename,
+          base: f.filenameWithoutExtension,
+          ext: f.fileExtension,
+          data: await File.readBinary(f.file)
+        }))
+    );
 
     // difficulty is 'n', 'h', or 'ex' (probably)
     const difficulty = pms => pms.base.split("-").slice(-1)[0];
