@@ -6,18 +6,11 @@
 </script>
 
 <style>
-  h1 a {
-    color: #ee395b;
-  }
+
 </style>
 
 <header>
   <div class="uk-margin-bottom">
-    <div>
-      <h1 class="uk-heading-small uk-heading-divider">
-        <a class="uk-link-heading" href="/" use:link>Web PMS Player</a>
-      </h1>
-    </div>
     <nav class="uk-navbar-container" uk-navbar uk-sticky>
       <div class="uk-navbar-left">
         <ul class="uk-navbar-nav">
