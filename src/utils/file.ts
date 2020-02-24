@@ -1,5 +1,5 @@
 // use Blob.text instead
-const readFile = file =>
+const readFile = (file: Blob): Promise<string | ArrayBuffer | null> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = _ => {
@@ -11,7 +11,7 @@ const readFile = file =>
     reader.readAsText(file)
   })
 
-const readBinary = file =>
+const readBinary = (file: Blob): Promise<string | ArrayBuffer | null> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = _ => {

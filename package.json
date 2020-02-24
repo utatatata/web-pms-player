@@ -19,7 +19,8 @@
     "rollup-plugin-svelte": "^5.0.3",
     "rollup-plugin-terser": "^5.1.2",
     "svelte": "^3.0.0",
-    "svelte-preprocess": "^3.4.0"
+    "svelte-preprocess": "^3.4.0",
+    "typescript": "^3.7.5"
   },
   "dependencies": {
     "dexie": "^2.0.4",

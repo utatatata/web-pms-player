@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "strictNullChecks": true,
+    "typeRoots": ["types", "node_modules/@types"],
+    "rootDir": "./src",
+    "baseUrl": "./src",
+  },
+}

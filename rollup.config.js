@@ -3,7 +3,7 @@ import resolve from "@rollup/plugin-node-resolve"
 import commonjs from "@rollup/plugin-commonjs"
 import livereload from "rollup-plugin-livereload"
 import { terser } from "rollup-plugin-terser"
-import { scss, globalStyle, postcss } from "svelte-preprocess"
+import { scss, globalStyle, postcss, typescript } from "svelte-preprocess"
 
 const production = !process.env.ROLLUP_WATCH
 
@@ -37,6 +37,9 @@ export default {
           ],
         }),
         globalStyle({}),
+        typescript({
+          tsconfigFile: "./tsconfig.json",
+        }),
       ],
     }),
 

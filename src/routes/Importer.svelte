@@ -1,7 +1,7 @@
-<script>
+<script lang="typescript">
   import { onMount } from "svelte";
   import { link } from "svelte-spa-router";
-  import FilePond from "filepond";
+  import * as FilePond from "filepond";
   import UIkit from "uikit";
   import Header from "../components/Header.svelte";
   import * as Parser from "../utils/parser.js";
